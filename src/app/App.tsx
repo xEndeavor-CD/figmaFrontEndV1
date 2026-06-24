@@ -91,6 +91,7 @@ export default function App() {
             />
           </Screen>
         )}
+        
        {page === "doors" && (
               <Screen key="doors" zoom>
                 <DoorsPage
