@@ -116,6 +116,7 @@ export default function App() {
                 />
               </Screen>
         )}
+        
         {page === "login" && (
           <Screen key="login">
             <LoginPage onBack={() => setPage("landing")} onLoginSuccess={loginSuccess} isLoggedIn={isLoggedIn} onLogout={logout} />
