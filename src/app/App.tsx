@@ -5,7 +5,25 @@ import { ArrowLeft, CalendarDays, Shield, Trophy, Users, Zap } from "lucide-reac
 import { InteractiveBackground } from "./components/InteractiveBackground";
 import { DoorsPage, type DoorFeature } from "./components/DoorsPage";
 
-type Page = "landing" | "doors" | "login" | DoorFeature;
+// Import your new Football components (adjust paths as needed)
+import FootballHome from "./pages/football/FootballHome";
+import Leagues from "./pages/football/Leagues";
+import Clubs from "./pages/football/Clubs";
+import Fixtures from "./pages/football/Fixtures";
+import FixtureDetail from "./pages/football/FixtureDetail";
+import Standings from "./pages/football/Standings";
+import WorldCupAnalytics from "./pages/football/WorldCupAnalytics";
+
+type FootballPage =
+  | "football-home"
+  | "football-leagues"
+  | "football-clubs"
+  | "football-fixtures"
+  | "football-fixture-detail"
+  | "football-standings"
+  | "football-worldcup";
+
+type Page = "landing" | "doors" | "login" | DoorFeature | FootballPage;
 
 const featureCopy: Record<DoorFeature, {
   eyebrow: string;
@@ -14,32 +32,40 @@ const featureCopy: Record<DoorFeature, {
   stats: string[];
   actions: string[];
 }> = {
-  teams: {
-    eyebrow: "Door 01 · Teams",
-    title: "Build your squad",
-    note: "Draft stick players, set roles, and lock a formation before match night.",
-    stats: ["12 active squads", "4 open tryouts", "88% chemistry"],
-    actions: ["Create roster", "Invite captain", "Set kit colors"],
+  esport: {
+    eyebrow: "Door 01 · E-Sports",
+    title: "E-Sports Arena",
+    note: "Manage tournaments, track team scores, and follow live match brackets.",
+    stats: ["8 tournaments", "32 teams", "Live now"],
+    actions: ["View tournaments", "Team standings", "Live matches"],
   },
-  matches: {
-    eyebrow: "Door 02 · Matches",
-    title: "Match control room",
-    note: "Queue fixtures, track brackets, and publish highlights from one sketchbook console.",
-    stats: ["6 games today", "21 goals logged", "Final at 21:00"],
-    actions: ["Schedule match", "Open bracket", "Post replay"],
+  questboard: {
+    eyebrow: "Door 02 · Quest Board",
+    title: "Quest Board",
+    note: "Track challenges, complete quests, and climb the leaderboard.",
+    stats: ["24 quests", "12 active", "Top scorer"],
+    actions: ["Browse quests", "My progress", "Leaderboard"],
   },
-  training: {
-    eyebrow: "Door 03 · Training",
-    title: "Practice the trickbook",
-    note: "Run juggling drills, reaction tests, and arena challenges before the crowd arrives.",
-    stats: ["9 drills ready", "42 min session", "+14 form boost"],
-    actions: ["Start drill", "Review form", "Save routine"],
+  football: {
+    eyebrow: "Door 03 · Football",
+    title: "Football Tracker",
+    note: "Follow leagues, fixtures, standings and live World Cup analytics.",
+    stats: ["12 leagues", "48 clubs", "WC 2026 Live"],
+    actions: ["View leagues", "Fixtures", "World Cup"],
   },
-};
+};;
 
 export default function App() {
   const [page, setPage] = useState<Page>("landing");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Football module state
+  const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null);
+  const [selectedLeagueName, setSelectedLeagueName] = useState<string>("");
+  const [selectedFixtureId, setSelectedFixtureId] = useState<string | null>(null);
+  
+  // Derive isAdmin from session/auth (defaulting to false if not logged in)
+  const isAdmin = isLoggedIn;
 
   const goLogin = () => setPage("login");
   const logout = () => {
@@ -56,22 +82,136 @@ export default function App() {
       <AnimatePresence mode="wait">
         {page === "landing" && (
           <Screen key="landing">
-            <Landing onEnterArena={() => setPage("doors")} isLoggedIn={isLoggedIn} onLogin={goLogin} onLogout={logout} />
+            <Landing 
+              onEnterArena={() => setPage("doors")} 
+              isLoggedIn={isLoggedIn} 
+              onLogin={goLogin} 
+              onLogout={logout} 
+              onFootball={() => setPage("football-home")}
+            />
           </Screen>
         )}
-        {page === "doors" && (
-          <Screen key="doors" zoom>
-            <DoorsPage onBack={() => setPage("landing")} onDoorSelect={setPage} authSlot={<AuthButtons isLoggedIn={isLoggedIn} onLogin={goLogin} onLogout={logout} />} />
-          </Screen>
+
+       {page === "doors" && (
+              <Screen key="doors" zoom>
+                <DoorsPage
+                  onBack={() => setPage("landing")}
+                  onDoorSelect={(feature) => {
+                    if (feature === "football") {
+                      setPage("football-home");
+                    } else if (feature === "esport") {
+                      setPage("esport" as Page); // esport home page
+                    } else if (feature === "questboard") {
+                      setPage("questboard" as Page); // questboard home page
+                    } else {
+                      setPage(feature);
+                    }
+                  }}
+                  authSlot={
+                    <AuthButtons
+                      isLoggedIn={isLoggedIn}
+                      onLogin={goLogin}
+                      onLogout={logout}
+                    />
+                  }
+                />
+              </Screen>
         )}
+        
         {page === "login" && (
           <Screen key="login">
             <LoginPage onBack={() => setPage("landing")} onLoginSuccess={loginSuccess} isLoggedIn={isLoggedIn} onLogout={logout} />
           </Screen>
         )}
-        {(page === "teams" || page === "matches" || page === "training") && (
-          <Screen key={page}>
-            <FeaturePage feature={page} onBack={() => setPage("doors")} isLoggedIn={isLoggedIn} onLogin={goLogin} onLogout={logout} />
+        {(page === "esport" || page === "questboard" || page === "football") && (
+            <Screen key={page}>
+              <FeaturePage
+                feature={page as DoorFeature}
+                onBack={() => setPage("doors")}
+                isLoggedIn={isLoggedIn}
+                onLogin={goLogin}
+                onLogout={logout}
+              />
+            </Screen>
+        )}
+
+        {/* --- FOOTBALL MODULE ROUTES --- */}
+        {page === "football-home" && (
+          <Screen key="football-home">
+            <FootballHome
+              onLeagues={() => setPage("football-leagues")}
+              onClubs={() => setPage("football-clubs")}
+              onFixtures={() => {
+                setSelectedLeagueId(null); // Show all fixtures globally
+                setPage("football-fixtures");
+              }}
+              onStandings={() => setPage("football-leagues")} // Best UX: prompt them to pick a league first
+              onWorldCup={() => setPage("football-worldcup")}
+            />
+          </Screen>
+        )}
+        {page === "football-leagues" && (
+          <Screen key="football-leagues">
+            <Leagues
+              isAdmin={isAdmin}
+              onBack={() => setPage("football-home")}
+              onViewStandings={(id) => {
+                setSelectedLeagueId(id);
+                setSelectedLeagueName("Selected League"); // Optional: map to actual name if available
+                setPage("football-standings");
+              }}
+              onViewFixtures={(id) => {
+                setSelectedLeagueId(id);
+                setPage("football-fixtures");
+              }}
+            />
+          </Screen>
+        )}
+        {page === "football-clubs" && (
+          <Screen key="football-clubs">
+            <Clubs
+              isAdmin={isAdmin}
+              onBack={() => setPage("football-home")}
+            />
+          </Screen>
+        )}
+        {page === "football-fixtures" && (
+          <Screen key="football-fixtures">
+            <Fixtures
+              leagueId={selectedLeagueId || undefined}
+              isAdmin={isAdmin}
+              onBack={() => setPage(selectedLeagueId ? "football-leagues" : "football-home")}
+              onFixtureClick={(id) => {
+                setSelectedFixtureId(id);
+                setPage("football-fixture-detail");
+              }}
+            />
+          </Screen>
+        )}
+        {page === "football-fixture-detail" && selectedFixtureId && (
+          <Screen key="football-fixture-detail">
+            <FixtureDetail
+              fixtureId={selectedFixtureId}
+              isAdmin={isAdmin}
+              onBack={() => setPage("football-fixtures")}
+            />
+          </Screen>
+        )}
+        {page === "football-standings" && (
+          <Screen key="football-standings">
+            <Standings
+              leagueId={selectedLeagueId || ""}
+              leagueName={selectedLeagueName || "League"}
+              onBack={() => setPage("football-leagues")}
+            />
+          </Screen>
+        )}
+        {page === "football-worldcup" && (
+          <Screen key="football-worldcup">
+            <WorldCupAnalytics
+              isAdmin={isAdmin}
+              onBack={() => setPage("football-home")}
+            />
           </Screen>
         )}
       </AnimatePresence>
@@ -82,7 +222,7 @@ export default function App() {
 function Screen({ children, zoom = false }: { children: ReactNode; zoom?: boolean }) {
   return (
     <motion.div
-      className="absolute inset-0"
+      className="relative min-h-screen w-full overflow-y-auto"
       initial={{ opacity: 0, scale: zoom ? 1.06 : 1 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0 }}
@@ -93,7 +233,7 @@ function Screen({ children, zoom = false }: { children: ReactNode; zoom?: boolea
   );
 }
 
-function Landing({ onEnterArena, isLoggedIn, onLogin, onLogout }: { onEnterArena: () => void; isLoggedIn: boolean; onLogin: () => void; onLogout: () => void }) {
+function Landing({ onEnterArena, isLoggedIn, onLogin, onLogout, onFootball }: { onEnterArena: () => void; isLoggedIn: boolean; onLogin: () => void; onLogout: () => void; onFootball: () => void }) {
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#efe9da] text-[#2b2b2b]">
       <InteractiveBackground onPortalEnd={onEnterArena} />
@@ -102,8 +242,18 @@ function Landing({ onEnterArena, isLoggedIn, onLogin, onLogout }: { onEnterArena
         <header className="flex items-center justify-between">
           <Logo />
           <div className="pointer-events-auto flex items-center gap-3"><nav className="pointer-events-auto hidden items-center gap-7 font-['Space_Grotesk'] text-sm md:flex">
-            {["Teams", "Matches", "Arena", "About"].map((item) => (
-              <a key={item} href="#" className="relative uppercase tracking-[0.14em] opacity-80 transition-opacity hover:opacity-100">{item}</a>
+            {["Teams", "Matches", "Arena", "Football", "About"].map((item) => (
+              <a 
+                key={item} 
+                href="#" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (item === "Football") onFootball();
+                }}
+                className="relative uppercase tracking-[0.14em] opacity-80 transition-opacity hover:opacity-100"
+              >
+                {item}
+              </a>
             ))}
           </nav><AuthButtons isLoggedIn={isLoggedIn} onLogin={onLogin} onLogout={onLogout} /></div>
         </header>
@@ -238,10 +388,24 @@ function DoorFigure() {
   );
 }
 
-function LoginPage({ onBack, onLoginSuccess, isLoggedIn, onLogout }: { onBack: () => void; onLoginSuccess: () => void; isLoggedIn: boolean; onLogout: () => void }) {
-  const [mode, setMode] = useState<"login" | "register">("login");
+function LoginPage({ onBack, onLoginSuccess, isLoggedIn, onLogout }: {
+  onBack: () => void;
+  onLoginSuccess: () => void;
+  isLoggedIn: boolean;
+  onLogout: () => void;
+}) {
+  const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
   const [isWide, setIsWide] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+
   const isRegister = mode === "register";
+  const isForgot = mode === "forgot";
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 1024px)");
@@ -250,6 +414,90 @@ function LoginPage({ onBack, onLoginSuccess, isLoggedIn, onLogout }: { onBack: (
     media.addEventListener("change", sync);
     return () => media.removeEventListener("change", sync);
   }, []);
+
+  const switchMode = (next: "login" | "register" | "forgot") => {
+    setMode(next);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      if (isForgot) {
+          const res = await fetch("/api/auth/forgot-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+          if (!res.ok) throw new Error("Failed to send reset email");
+          setSuccessMsg(`Reset link sent to ${email}. Check your inbox!`);
+          setIsLoading(false);
+          return;
+        }
+
+      if (isRegister) {
+        const res = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ username, email, password }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.message || "Signup failed");
+        }
+        const loginRes = await fetch("/api/auth/signin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ email, password }),
+        });
+        if (!loginRes.ok) throw new Error("Auto login failed after signup");
+        onLoginSuccess();
+      } else {
+        const res = await fetch("/api/auth/signin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ email, password }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.message || "Invalid email or password");
+        }
+        onLoginSuccess();
+      }
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Sidebar copy per mode
+  const sidebarContent = {
+    login: {
+      heading: "WELCOME\nBACK",
+      sub: "Sign in to keep your teams, fixtures, drills, and match progress synced across the clubhouse.",
+    },
+    register: {
+      heading: "JOIN THE\nROSTER",
+      sub: "Create your player card, save your squad, and enter the arena with your own league identity.",
+    },
+    forgot: {
+      heading: "RESET\nACCESS",
+      sub: "No worries — enter your email and we'll send reset instructions straight to your inbox.",
+    },
+  };
+
+  const sidebarX = isWide && isRegister ? "100%" : "0%";
+  const sidebarRadius = isRegister ? "0 2rem 2rem 0" : "2rem 0 0 2rem";
+  const formX = isWide && isRegister ? "-100%" : "0%";
 
   return (
     <div className="min-h-screen overflow-auto bg-[#efe9da] text-[#2b2b2b]">
@@ -263,26 +511,42 @@ function LoginPage({ onBack, onLoginSuccess, isLoggedIn, onLogout }: { onBack: (
 
         <section className="flex flex-1 items-center py-10">
           <div className="relative grid w-full overflow-hidden rounded-[2rem] border-[3px] border-[#2b2b2b] bg-[#f7f0df] shadow-[12px_12px_0_rgba(43,43,43,0.22)] lg:grid-cols-2">
+
+            {/* SIDEBAR */}
             <motion.aside
-              animate={{ x: isWide && isRegister ? "100%" : "0%", borderRadius: isRegister ? "0 2rem 2rem 0" : "2rem 0 0 2rem" }}
+              animate={{ x: sidebarX, borderRadius: sidebarRadius }}
               transition={{ duration: 0.55, ease: [0.77, 0, 0.175, 1] }}
               className="relative z-10 hidden min-h-[620px] flex-col justify-between bg-[#2b2b2b] p-10 text-[#f3eee1] lg:flex"
             >
               <div>
                 <div className="mb-12 flex items-center gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#f3eee1]">
-                    <svg width="25" height="28" viewBox="0 0 22 26" fill="none" stroke="#f3eee1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="4" r="3" /><path d="M11 7v9" /><path d="M11 16l-5 7M11 16l5 7" /><path d="M11 10l-6 1M11 10l6 1" /></svg>
+                    <svg width="25" height="28" viewBox="0 0 22 26" fill="none" stroke="#f3eee1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="4" r="3" />
+                      <path d="M11 7v9" />
+                      <path d="M11 16l-5 7M11 16l5 7" />
+                      <path d="M11 10l-6 1M11 10l6 1" />
+                    </svg>
                   </div>
                   <span className="font-['Bebas_Neue'] text-3xl tracking-[0.04em]">STICK LEAGUE</span>
                 </div>
                 <AnimatePresence mode="wait">
-                  <motion.div key={mode} initial={{ opacity: 0, x: isRegister ? 28 : -28 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, delay: 0.22 }}>
-                    <h1 className="whitespace-pre-line font-['Bebas_Neue'] text-[72px] leading-[0.9] tracking-[0.015em]">{isRegister ? "JOIN THE\nROSTER" : "WELCOME\nBACK"}</h1>
-                    <p className="mt-5 max-w-sm font-['Space_Grotesk'] text-base leading-7 text-[#f3eee1]/65">{isRegister ? "Create your player card, save your squad, and enter the arena with your own league identity." : "Sign in to keep your teams, fixtures, drills, and match progress synced across the clubhouse."}</p>
+                  <motion.div
+                    key={mode}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.2, delay: 0.15 }}
+                  >
+                    <h1 className="whitespace-pre-line font-['Bebas_Neue'] text-[72px] leading-[0.9] tracking-[0.015em]">
+                      {sidebarContent[mode].heading}
+                    </h1>
+                    <p className="mt-5 max-w-sm font-['Space_Grotesk'] text-base leading-7 text-[#f3eee1]/65">
+                      {sidebarContent[mode].sub}
+                    </p>
                   </motion.div>
                 </AnimatePresence>
               </div>
-
               <div className="space-y-4">
                 {["Save squads", "Track match history", "Unlock training drills"].map((item) => (
                   <div key={item} className="flex items-center gap-3 font-['Space_Grotesk'] text-sm text-[#f3eee1]/80">
@@ -293,73 +557,181 @@ function LoginPage({ onBack, onLoginSuccess, isLoggedIn, onLogout }: { onBack: (
               </div>
             </motion.aside>
 
+            {/* FORM PANEL */}
             <motion.div
-              animate={{ x: isWide && isRegister ? "-100%" : "0%" }}
+              animate={{ x: formX }}
               transition={{ duration: 0.55, ease: [0.77, 0, 0.175, 1] }}
               className="relative min-h-[620px] p-6 sm:p-10 lg:col-start-2"
             >
               <AnimatePresence mode="wait">
                 <motion.form
                   key={mode}
-                  onSubmit={(e) => { e.preventDefault(); onLoginSuccess(); }}
-                  initial={{ opacity: 0, x: isRegister ? 28 : -28 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: isRegister ? -20 : 20 }}
+                  onSubmit={handleSubmit}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.22 }}
                   className="mx-auto flex h-full max-w-md flex-col justify-center"
                 >
-                  <span className="mb-5 w-fit rounded-full border-2 border-[#2b2b2b] bg-[#efe9da] px-3 py-1 font-['Space_Grotesk'] text-[11px] uppercase tracking-[0.22em]">{isRegister ? "Register" : "Login"}</span>
-                  <h2 className="font-['Bebas_Neue'] text-6xl leading-none">{isRegister ? "Create account" : "Welcome back"}</h2>
-                  <p className="mt-2 font-['Space_Grotesk'] text-sm leading-6 opacity-65">{isRegister ? "Start saving your player profile today." : "Enter your credentials to continue."}</p>
+                  {/* Mode badge */}
+                  <span className="mb-5 w-fit rounded-full border-2 border-[#2b2b2b] bg-[#efe9da] px-3 py-1 font-['Space_Grotesk'] text-[11px] uppercase tracking-[0.22em]">
+                    {mode === "login" ? "Login" : mode === "register" ? "Register" : "Reset Password"}
+                  </span>
+
+                  <h2 className="font-['Bebas_Neue'] text-6xl leading-none">
+                    {mode === "login" ? "Welcome back" : mode === "register" ? "Create account" : "Forgot password?"}
+                  </h2>
+                  <p className="mt-2 font-['Space_Grotesk'] text-sm leading-6 opacity-65">
+                    {mode === "login"
+                      ? "Enter your credentials to continue."
+                      : mode === "register"
+                      ? "Start saving your player profile today."
+                      : "Enter your email and we'll send reset instructions."}
+                  </p>
 
                   <div className="mt-8 space-y-4">
+                    {/* Username — register only */}
                     {isRegister && (
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <AuthField label="First name" placeholder="Stick" />
-                        <AuthField label="Last name" placeholder="Captain" />
-                      </div>
+                      <label className="block font-['Space_Grotesk'] text-sm font-bold uppercase tracking-[0.12em]">
+                        <span>Username</span>
+                        <input
+                          type="text"
+                          required
+                          placeholder="stickmaster99"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          className="mt-2 w-full rounded-2xl border-2 border-[#2b2b2b]/20 bg-[#efe9da] px-4 py-3 font-normal normal-case tracking-normal outline-none placeholder:text-[#2b2b2b]/35 focus:border-[#2b2b2b] focus:shadow-[0_0_0_3px_rgba(43,43,43,0.14)]"
+                        />
+                      </label>
                     )}
-                    <AuthField label="Email address" placeholder="player@stickleague.gg" type="email" />
-                    <AuthField label="Password" placeholder={isRegister ? "Minimum 6 characters" : "Enter your password"} type="password" />
+
+                    {/* Email */}
+                    <label className="block font-['Space_Grotesk'] text-sm font-bold uppercase tracking-[0.12em]">
+                      <span>Email address</span>
+                      <input
+                        type="email"
+                        required
+                        placeholder="player@stickleague.gg"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="mt-2 w-full rounded-2xl border-2 border-[#2b2b2b]/20 bg-[#efe9da] px-4 py-3 font-normal normal-case tracking-normal outline-none placeholder:text-[#2b2b2b]/35 focus:border-[#2b2b2b] focus:shadow-[0_0_0_3px_rgba(43,43,43,0.14)]"
+                      />
+                    </label>
+
+                    {/* Password — login + register only */}
+                    {!isForgot && (
+                      <label className="block font-['Space_Grotesk'] text-sm font-bold uppercase tracking-[0.12em]">
+                        <span>Password</span>
+                        <input
+                          type="password"
+                          required
+                          placeholder={isRegister ? "Minimum 6 characters" : "Enter your password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="mt-2 w-full rounded-2xl border-2 border-[#2b2b2b]/20 bg-[#efe9da] px-4 py-3 font-normal normal-case tracking-normal outline-none placeholder:text-[#2b2b2b]/35 focus:border-[#2b2b2b] focus:shadow-[0_0_0_3px_rgba(43,43,43,0.14)]"
+                        />
+                      </label>
+                    )}
                   </div>
 
-                  {!isRegister && (
+                  {/* Error */}
+                  {errorMsg && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-4 rounded-2xl border-2 border-red-400 bg-red-50 px-4 py-3 font-['Space_Grotesk'] text-sm text-red-600"
+                    >
+                      {errorMsg}
+                    </motion.div>
+                  )}
+
+                  {/* Success (forgot password) */}
+                  {successMsg && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-4 rounded-2xl border-2 border-[#2f7a4d] bg-[#2f7a4d]/10 px-4 py-3 font-['Space_Grotesk'] text-sm text-[#2f7a4d]"
+                    >
+                      ✅ {successMsg}
+                    </motion.div>
+                  )}
+
+                  {/* Remember me + Forgot password — login only */}
+                  {mode === "login" && (
                     <div className="mt-4 flex items-center justify-between font-['Space_Grotesk'] text-sm">
-                      <label className="flex items-center gap-2 opacity-70"><input type="checkbox" className="h-4 w-4 accent-[#2b2b2b]" />Remember me</label>
-                      <button type="button" className="font-bold underline decoration-2 underline-offset-4">Forgot password?</button>
+                      <label className="flex items-center gap-2 opacity-70">
+                        <input type="checkbox" className="h-4 w-4 accent-[#2b2b2b]" />
+                        Remember me
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => switchMode("forgot")}
+                        className="font-bold underline decoration-2 underline-offset-4"
+                      >
+                        Forgot password?
+                      </button>
                     </div>
                   )}
 
-                  <button type="submit" className="mt-7 rounded-full border-2 border-[#2b2b2b] bg-[#2b2b2b] px-5 py-3 font-['Space_Grotesk'] font-bold text-[#f3eee1] shadow-[4px_4px_0_rgba(43,43,43,0.28)] transition-transform hover:-translate-y-0.5">{isRegister ? "Create Account" : "Sign In"}</button>
-
-                  <p className="mt-6 text-center font-['Space_Grotesk'] text-sm opacity-75">
-                    {isRegister ? "Already have an account?" : "Don't have an account?"}
-                    <button type="button" onClick={() => setMode(isRegister ? "login" : "register")} className="ml-2 font-bold underline decoration-2 underline-offset-4">
-                      {isRegister ? "Sign in" : "Create an account"}
+                  {/* Submit button */}
+                  {!successMsg && (
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="mt-7 rounded-full border-2 border-[#2b2b2b] bg-[#2b2b2b] px-5 py-3 font-['Space_Grotesk'] font-bold text-[#f3eee1] shadow-[4px_4px_0_rgba(43,43,43,0.28)] transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isLoading ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          {mode === "login" ? "Signing in..." : mode === "register" ? "Creating..." : "Sending..."}
+                        </>
+                      ) : (
+                        mode === "login" ? "Sign In" : mode === "register" ? "Create Account" : "Send Reset Link"
+                      )}
                     </button>
-                  </p>
+                  )}
 
-                  {!isRegister && (
+                  {/* Back to login — forgot mode */}
+                  {isForgot && (
+                    <button
+                      type="button"
+                      onClick={() => switchMode("login")}
+                      className="mt-4 rounded-full border-2 border-[#2b2b2b] bg-transparent px-5 py-3 font-['Space_Grotesk'] font-bold text-[#2b2b2b] transition-transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                    >
+                      ← Back to Sign In
+                    </button>
+                  )}
+
+                  {/* Switch login ↔ register */}
+                  {!isForgot && (
+                    <p className="mt-6 text-center font-['Space_Grotesk'] text-sm opacity-75">
+                      {isRegister ? "Already have an account?" : "Don't have an account?"}
+                      <button
+                        type="button"
+                        onClick={() => switchMode(isRegister ? "login" : "register")}
+                        className="ml-2 font-bold underline decoration-2 underline-offset-4"
+                      >
+                        {isRegister ? "Sign in" : "Create an account"}
+                      </button>
+                    </p>
+                  )}
+
+                  {/* Demo credentials — login only */}
+                  {mode === "login" && (
                     <div className="mt-6 rounded-2xl border-2 border-[#2b2b2b]/20 bg-[#efe9da] p-4 font-['Space_Grotesk'] text-xs leading-6 opacity-80">
-                      <strong>Demo access:</strong> player@stickleague.gg · demo1234
+                      <strong>Demo access:</strong> dayashan@test.com · Test@1234
                     </div>
                   )}
                 </motion.form>
               </AnimatePresence>
             </motion.div>
+
           </div>
         </section>
       </main>
     </div>
   );
 }
-
-function AuthField({ label, placeholder, type = "text" }: { label: string; placeholder: string; type?: string }) {
-  return (
-    <label className="block font-['Space_Grotesk'] text-sm font-bold uppercase tracking-[0.12em]">
-      <span>{label}</span>
-      <input type={type} required placeholder={placeholder} className="mt-2 w-full rounded-2xl border-2 border-[#2b2b2b]/20 bg-[#efe9da] px-4 py-3 font-normal normal-case tracking-normal outline-none placeholder:text-[#2b2b2b]/35 focus:border-[#2b2b2b] focus:shadow-[0_0_0_3px_rgba(43,43,43,0.14)]" />
-    </label>
-  );
-}
-
